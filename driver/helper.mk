@@ -5,7 +5,7 @@ else
 KERNEL_VER:= $(shell uname -r)
 endif
 KDIR ?= /lib/modules/$(shell uname -r)/build
-BOARD_BASE_DIR := $(BASE_DIR)board
+BOARD_BASE_DIR := $(BASE_DIR)board/
 
 NULL:=
 SPACE:=$(NULL) $(NULL)
