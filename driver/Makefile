@@ -36,8 +36,8 @@ utils := $(call dirs, $(UTILS_DIR))
 utils_src := $(call rpath, $(foreach util, $(utils), $(call list_files_from_file, $(UTILS_DIR)$(util)SOURCE)))
 utils_objs := $(patsubst %.c, %.o, $(utils_src))
 utils_inc := $(foreach util, $(utils), $(addprefix -I, $(UTILS_DIR)$(util)include))
-#board_src:=$(call rpath,$(call list_files_from_file,$(BOARD_BASE_DIR)/$(BOARD)/SOURCE))
-#board_objs:=$(patsubst %.c,%.o,$(board_src))
+board_src:=$(call rpath,$(call list_files_from_file,$(BOARD_BASE_DIR)/$(BOARD)/SOURCE))
+board_objs:=$(patsubst %.c,%.o,$(board_src))
 
 common-include-dir := $(BASE_DIR)include
 common-include := $(addprefix -I, $(common-include-dir))
@@ -45,7 +45,7 @@ common-include += $(utils_inc)
 
 $(MODULE_NAME)-objs += $(basic-objs)
 $(MODULE_NAME)-objs += $(utils_objs)
-#$(MODULE_NAME)-objs += $(board_objs)
+$(MODULE_NAME)-objs += $(board_objs)
 $(MODULE_NAME)-objs += AverMediaLib_64.o
 
 #$(call add_cflags, $(MODULE_NAME)-objs, common-include)  -fno-common
