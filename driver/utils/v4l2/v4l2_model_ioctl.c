@@ -10,6 +10,7 @@
  * =================================================================
  */
 #include "typedef.h"
+#include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/videodev2.h>
@@ -31,7 +32,7 @@
 // defaults for ADV7619
 #define BrightnessDefault  0x200
 #define ContrastDefault    0x100
-#define SaturationDefault  0x100
+#define SaturationDefault  0x80
 #define HueDefault         0x00
 //static U32_T SharpnessDefault  = 0x00;
 
@@ -45,10 +46,10 @@
 #define MAX_VAMP_CONTRAST_UNITS     0x1ff
 
 #define MIN_VAMP_SATURATION_UNITS   0
-#define MAX_VAMP_SATURATION_UNITS   360
+#define MAX_VAMP_SATURATION_UNITS   0x1ff
 
 #define MIN_VAMP_HUE_UNITS          0
-#define MAX_VAMP_HUE_UNITS          0x1ff
+#define MAX_VAMP_HUE_UNITS          360
 
 
 int brightness_tmp=0;
@@ -73,7 +74,7 @@ enum v4l2_bchs_type {
 
 static struct v4l2_queryctrl g_cx511h_ctrls[] = 
 {
-	#if 0
+	#if 1
 	{
 		V4L2_CID_BRIGHTNESS,           //id
 		V4L2_CTRL_TYPE_INTEGER,        //type
@@ -234,11 +235,14 @@ int v4l2_model_ioctl_querycap(struct file *file, void *fh, struct v4l2_capabilit
 		    strncpy(cap->card, v4l2m_context->device_info.card_name,sizeof(cap->card));    
         
         sprintf(cap->bus_info, "%s", dev_name(v4l2m_context->dev));
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(4,18,0)
 		if(v4l2m_context->device_info.capabilities)
 		{
-			//cap->device_caps = v4l2_model_to_v4l2_caps(v4l2m_context->device_info.capabilities) ;	
+			cap->device_caps = v4l2_model_to_v4l2_caps(v4l2m_context->device_info.capabilities) ;	
 		}
+#else
 		cap->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING;
+#endif
 		cap->capabilities = cap->device_caps | V4L2_CAP_DEVICE_CAPS;
 	}
 	return 0;
@@ -301,10 +305,13 @@ int v4l2_model_ioctl_g_fmt_vid_cap(struct file *file, void *fh,struct v4l2_forma
 	if(pixfmt)
 	{
 		int width,height;
-		//unsigned bytesperline;
+		unsigned bytesperline;
+		unsigned sizeimage;
         //printk("%s...\n",__func__);
-		framegrabber_g_input_framesize(v4l2m_context->framegrabber_handle,&width,&height);
-		//bytesperline=framegrabber_g_out_bytesperline(v4l2m_context->framegrabber_handle);
+		//framegrabber_g_input_framesize(v4l2m_context->framegrabber_handle,&width,&height);
+		framegrabber_g_out_framesize(v4l2m_context->framegrabber_handle, &width, &height);
+		bytesperline=framegrabber_g_out_bytesperline(v4l2m_context->framegrabber_handle);
+		sizeimage = framegrabber_g_out_framebuffersize(v4l2m_context->framegrabber_handle);
         //printk("%s..f->fmt.pix.width=%d.f->fmt.pix.height=%d.\n",__func__,f->fmt.pix.width,f->fmt.pix.height);
 
 		f->fmt.pix.width=width;
@@ -313,8 +320,13 @@ int v4l2_model_ioctl_g_fmt_vid_cap(struct file *file, void *fh,struct v4l2_forma
 		f->fmt.pix.pixelformat  = pixfmt->fourcc;
 
 		//f->fmt.pix.bytesperline = bytesperline;
+#if 0 //[AVTLD-79]+
 		f->fmt.pix.bytesperline = (f->fmt.pix.width * pixfmt->depth) >> 3;
 		f->fmt.pix.sizeimage =	f->fmt.pix.height * f->fmt.pix.bytesperline;
+#else
+		f->fmt.pix.bytesperline = bytesperline;
+		f->fmt.pix.sizeimage = sizeimage;
+#endif //[AVTLD-79]-
 		if (pixfmt->is_yuv)
 			f->fmt.pix.colorspace = V4L2_COLORSPACE_REC709;
 		else
@@ -390,9 +402,15 @@ int v4l2_model_ioctl_try_fmt_vid_cap(struct file *file, void *fh, struct v4l2_fo
 		f->fmt.pix.height = 1080;
 	}
 	
-	
+
+#if 0 //[AVTLD-79]+
 	f->fmt.pix.bytesperline = (f->fmt.pix.width * fmt->depth) >> 3;
 	f->fmt.pix.sizeimage =f->fmt.pix.height * f->fmt.pix.bytesperline;
+#else
+//    printk("%s: 0 bytesperline=%d sizeimage=%d", __func__, f->fmt.pix.bytesperline, f->fmt.pix.sizeimage);
+	f->fmt.pix.sizeimage = (f->fmt.pix.height * f->fmt.pix.width * fmt->depth) >> 3;
+//    printk("%s: 1 bytesperline=%d sizeimage=%d", __func__, f->fmt.pix.bytesperline, f->fmt.pix.sizeimage);
+#endif //[AVTLD-79]-
         
 	if (fmt!=NULL && fmt->is_yuv)
 		f->fmt.pix.colorspace = V4L2_COLORSPACE_REC709;//V4L2_COLORSPACE_SMPTE170M;
@@ -440,7 +458,7 @@ int v4l2_model_ioctl_s_fmt_vid_cap(struct file *file, void *fh,struct v4l2_forma
    //printk("%s.f->fmt.pix.width=%d..f->fmt.pix.height=%d\n",__func__,f->fmt.pix.width,f->fmt.pix.height);
    framegrabber_s_out_framesize(v4l2m_context->framegrabber_handle,f->fmt.pix.width,f->fmt.pix.height); 
    framegrabber_s_out_pixelfmt(v4l2m_context->framegrabber_handle,f->fmt.pix.pixelformat); 
-
+   framegrabber_s_out_bytesperline(v4l2m_context->framegrabber_handle, f->fmt.pix.bytesperline);
     return 0;
 }
 

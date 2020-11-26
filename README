@@ -1,0 +1,125 @@
+<Linux device driver for AVerMedia CX511H HDMI HD Capture Card>
+
+	This is the Linux device driver released for AVerMedia CX511H HDMI HD Capture Card with PCI-Express Mini Card interface.
+
+<Quick install/uninstall>
+
+	1. Unpack the tarball:
+
+	2. Install and load the module (as root or with sudo):
+
+		# sudo make install
+		# sudo modprobe cx511h
+        # sudo -i
+        # sudo echo cx511h >> /etc/modules (just for first time installation))
+
+	3. Uninstall and unload the moudle (as root or with sudo):
+                (makesure unbind the device before uninstall,ex. sudo echo -n "0000:01:00.0" >unbind) 
+		# sudo modprobe -r cx511h
+		# sudo make uninstall
+
+<Check driver version>
+
+        driver version
+                # sudo cat /sys/module/cx511h/version
+
+<Check chip version>
+
+        chip version
+                # dmesg | grep chip_version
+
+<Support input source>
+
+	V4L2 input index: HDMI=0 <index=0>
+
+<Supported pixel format>
+
+	YUYV/RGB - Raw data
+
+<VLC AP>
+        Fill value to the column of width, height on Advanced Options
+        
+        example : input signal 1920x1080
+
+        1. original in/out: set width = 1920 and height = 1080
+        2. scaler down: set width = 1280 and height = 720
+	 
+
+<V4L2 utils>
+
+	replace '$' with your device index
+
+	1. Install v4l-utils
+
+		# apt-get install v4l-utils (as root or with sudo)
+
+	2. Check cm311h video device index
+
+		# v4l2-ctl --list-devices
+
+	3. Set video input 
+
+		# v4l2-ctl --device=/dev/video$ --set-input=<index>
+
+	4. Set output video format
+
+		# v4l2-ctl --device=/dev/video$ --set-fmt-video=width=<width>,height=<height>,pixelformat=YUYV
+
+	        or default video size
+
+		# v4l2-ctl --device=/dev/video$ --set-fmt-video=width=0,height=0,pixelformat=<RGB or YUYV>
+
+	example:
+
+	1. Downscale to 1280x720
+
+		# v4l2-ctl --device=/dev/video0 --set-fmt-video=width=1280,height=720,pixelformat=YUYV
+
+	2. Default resolution 1920x1080
+
+		# v4l2-ctl --device=/dev/video0 --set-fmt-video=width=0,height=0,pixelformat=YUYV
+
+
+<Supported output resolutions>
+
+	640x480
+	720x480
+	720x576
+	800x600
+	1024x768
+	1280x720
+	1280x800
+	1280x1024
+	1360x768
+	1440x900
+	1680x1050
+	1920x1080
+
+<Supported v4l2 control>
+
+	replace '$' with your device index
+
+	V42L_CID_BRIGHTNESS
+		min=-128,max=127,default=0
+
+	V4L2 CID_SATURATION
+		min=0,max=255,default=128
+
+	V4L2_CID_CONTRAST
+		min=0,max=255,default=128
+
+	V4L2_CID_HUE
+		min=0,max=255,default=0
+
+	
+	1. Use v4l2-ctl to query control
+
+		# v4l2-ctl --device=/dev/video$ -L
+
+	2. Set control
+
+	example
+
+		# v4l2-ctl --device=/dev/video$ --set-ctrl=brightness=100
+
+
